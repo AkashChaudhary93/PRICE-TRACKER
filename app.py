@@ -960,7 +960,9 @@ if user_input:
     
     # Bot response logic
     response = ""
+    # Normalize input: lowercase and strip spaces for detection, keep original for display/search
     user_input_lower = user_input.lower().strip()
+    user_input_normalized = user_input_lower.replace(" ", "")  # Remove spaces for keyword matching
     words = user_input_lower.split()
     is_json_requested = "json" in words
 
@@ -976,9 +978,11 @@ if user_input:
         else:
             response = f"🔔 Awesome! I’ll notify you at <b>{recipient_email}</b> when prices drop. Anything else I can assist with?"
     else:
-        product_keywords = ["iphone", "shoes", "laptop", "tv", "headphones", "watch", "camera", "pen"]
+        # Updated product keywords (normalized comparison will handle spaces)
+        product_keywords = ["iphone", "shoes", "laptop", "tv", "headphones", "watch", "camera", "pen", "toothbrush"]
         insight_phrases = ["insights", "went outside", "shop", "saw", "checked out"]
-        detected_product = next((keyword for keyword in product_keywords if keyword in user_input_lower), None)
+        # Check for product keywords in normalized input
+        detected_product = next((keyword for keyword in product_keywords if keyword in user_input_normalized), None)
 
         if detected_product and any(phrase in user_input_lower for phrase in insight_phrases):
             if detected_product == "iphone":
@@ -997,11 +1001,15 @@ if user_input:
                 response = """
                 👋 Cool, you went to check out a pen in a shop today! Since you didn’t specify a brand or type, here are some general insights about pens in India as of March 27, 2025: Popular brands like Parker, Montblanc, and Lamy are favored for premium writing, while affordable options from Reynolds and Cello are widely used. Prices vary—a basic ballpoint pen from Reynolds might cost ₹10-₹50 on Flipkart or Amazon.in, while a luxury fountain pen from Parker can range from ₹1,000 to ₹10,000 or more. Features like smooth ink flow, ergonomic grips, and durable tips are key in everyday pens, with premium models offering craftsmanship and style. <b>Shopping tip:</b> Look online for bulk deals or festive discounts—e-commerce sites often beat local shop prices. What kind of pen did you see? Tell me the brand or type, and I can give you specific prices or details!
                 """
+            elif detected_product == "toothbrush":
+                response = """
+                👋 Cool, you went to check out a toothbrush in a shop today! Since you didn’t specify a brand or type, here are some general insights about toothbrushes in India as of March 27, 2025: Popular brands like Colgate, Oral-B, and Philips (electric) dominate the market, with manual brushes starting at ₹20-₹100 on Flipkart or Amazon.in, and electric ones ranging from ₹500 to ₹5,000+. Features like soft bristles, ergonomic handles, and smart timers (in electric models) are trending. <b>Shopping tip:</b> Check online for combo packs or subscription deals—e-commerce sites often offer better value than local stores. What kind of toothbrush did you see? Tell me the brand or type for specific prices or details!
+                """
         else:
             if len(user_input_lower) < 3 or not any(char.isalpha() for char in user_input_lower):
                 response = f"🚫 No results found for '{user_input}'. Please enter a valid product name."
             else:
-                product_query = user_input.strip()
+                product_query = user_input.strip()  # Use original input for search
                 with st.spinner(f"Searching prices for **{product_query}**..."):
                     try:
                         results = search_product_prices(product_query, GEMINI_API_KEY)
