@@ -21,6 +21,7 @@ db_manager = DatabaseManager("product_prices.db")
 email_sender = EmailSender(SENDER_EMAIL, SENDER_PASSWORD)
 
 # Custom CSS for Netflix-inspired theme with flexbox for chat alignment
+# Added CSS for the custom typing animation
 st.markdown("""
     <style>
     /* Main app background */
@@ -130,6 +131,40 @@ st.markdown("""
     header {
         background-color: #141414 !important;
     }
+    /* Custom typing animation */
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        color: #b3b3b3;
+        font-size: 16px;
+        font-family: 'Helvetica Neue', sans-serif;
+        margin-top: 10px;
+    }
+    .typing-indicator span {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #E50914;
+        border-radius: 50%;
+        margin: 0 2px;
+        animation: typing 1s infinite;
+    }
+    .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+    .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+    @keyframes typing {
+        0%, 100% {
+            opacity: 0.2;
+            transform: translateY(0);
+        }
+        50% {
+            opacity: 1;
+            transform: translateY(-5px);
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -154,6 +189,13 @@ with chat_container:
         else:
             chat_html += f'<div class="chat-message-assistant">{message["content"]}</div>'
     chat_html += '</div>'
+    # Add JavaScript to scroll to the bottom
+    chat_html += """
+    <script>
+        var chatContainer = document.querySelector('.chat-container');
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    </script>
+    """
     # Render the chat HTML
     st.markdown(chat_html, unsafe_allow_html=True)
 
@@ -243,33 +285,43 @@ if user_input:
                 response = f"🚫 No results found for '{user_input}'. Please enter a valid product name."
             else:
                 product_query = user_input.strip()  # Use original input for search
-                with st.spinner(f"Searching prices for **{product_query}**..."):
-                    try:
-                        results = search_product_prices(product_query, GEMINI_API_KEY)
-                        if not isinstance(results, list) or len(results) == 0:
-                            response = f"🚫 No results found for '{product_query}'. Try a different product name or check your spelling."
+                # Show custom typing animation
+                typing_placeholder = st.empty()
+                typing_placeholder.markdown("""
+                    <div class="typing-indicator">
+                        Typing <span></span><span></span><span></span>
+                    </div>
+                """, unsafe_allow_html=True)
+                try:
+                    results = search_product_prices(product_query, GEMINI_API_KEY)
+                    # Clear the typing animation once the search is complete
+                    typing_placeholder.empty()
+                    if not isinstance(results, list) or len(results) == 0:
+                        response = f"🚫 No results found for '{product_query}'. Try a different product name or check your spelling."
+                    else:
+                        if is_json_requested:
+                            json_data = {
+                                "query": product_query,
+                                "results_count": len(results),
+                                "listings": [
+                                    {
+                                        "product": result.get("Product", "Product"),
+                                        "price": result.get("Price", "N/A"),
+                                        "platform": result.get("Platform", "Source")
+                                    } for result in results
+                                ]
+                            }
+                            response = f"✅ Found {len(results)} price listings for '{product_query}'!\n\nHere’s the JSON:\n```json\n{json.dumps(json_data, indent=2)}\n```"
                         else:
-                            if is_json_requested:
-                                json_data = {
-                                    "query": product_query,
-                                    "results_count": len(results),
-                                    "listings": [
-                                        {
-                                            "product": result.get("Product", "Product"),
-                                            "price": result.get("Price", "N/A"),
-                                            "platform": result.get("Platform", "Source")
-                                        } for result in results
-                                    ]
-                                }
-                                response = f"✅ Found {len(results)} price listings for '{product_query}'!\n\nHere’s the JSON:\n```json\n{json.dumps(json_data, indent=2)}\n```"
-                            else:
-                                response = f"✅ Found {len(results)} price listings for '{product_query}'!\n\nHere’s what I found:\n\n"
-                                for i, result in enumerate(results, 1):
-                                    response += f"{i}. **{result.get('Product', 'Product')}**: {result.get('Price', 'N/A')} - [{result.get('Platform', 'Source')}]"
-                                    response += "\n"
-                                response += "\nWould you like me to track this for you? Just say 'Track this'!"
-                    except Exception as e:
-                        response = f"⚠️ Oops! Something went wrong: {str(e)}. Try again?"
+                            response = f"✅ Found {len(results)} price listings for '{product_query}'!\n\nHere’s what I found:\n\n"
+                            for i, result in enumerate(results, 1):
+                                response += f"{i}. **{result.get('Product', 'Product')}**: {result.get('Price', 'N/A')} - [{result.get('Platform', 'Source')}]"
+                                response += "\n"
+                            response += "\nWould you like me to track this for you? Just say 'Track this'!"
+                except Exception as e:
+                    # Clear the typing animation on error
+                    typing_placeholder.empty()
+                    response = f"⚠️ Oops! Something went wrong: {str(e)}. Try again?"
 
     st.session_state["messages"].append({"role": "assistant", "content": response})
     st.rerun()  # Rerun the app to update the chat display
