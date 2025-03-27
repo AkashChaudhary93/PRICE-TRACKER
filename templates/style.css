@@ -1,0 +1,74 @@
+/* Global Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Customizing the main container */
+.main {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Streamlit headers */
+h1, h2, h3 {
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Buttons */
+.st-b4 {
+    background-color: #007bff !important;
+    color: white !important;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.st-b4:hover {
+    background-color: #0056b3 !important;
+}
+
+/* Sidebar */
+.sidebar .css-1lcbmhc {
+    background-color: #ffffff !important;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Input fields */
+input, textarea {
+    border-radius: 5px !important;
+    border: 1px solid #ddd !important;
+    padding: 10px !important;
+}
+
+/* Streamlit default text */
+.stMarkdown {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
