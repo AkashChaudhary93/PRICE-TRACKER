@@ -262,9 +262,7 @@ if selected == "Chatbot":
         st.markdown('<h4>🛒 Tips</h4>', unsafe_allow_html=True)
         st.markdown("""
             <div>
-            ✅ Be specific (e.g., brand, model)  
-            ✅ Electronics: Add storage, color  
-            ✅ Pens: Mention brand, type  
+            ✅ Be specific (e.g., brand, model)   
             </div>
         """, unsafe_allow_html=True)
 
@@ -387,7 +385,7 @@ elif selected == "About":
 
 
 
-            
+
 # import streamlit as st
 # import os
 # import json
