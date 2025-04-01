@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import json
@@ -34,7 +33,7 @@ st.markdown("""
         min-height: 100vh;
     }
     /* Chat container */
-    .chat-container {
+    .stChat {
         background: #212121;
         border-radius: 15px;
         padding: 20px;
@@ -45,30 +44,30 @@ st.markdown("""
         flex-direction: column;
     }
     /* User message */
-    .chat-message-user {
-        background: linear-gradient(90deg, #0288d1 0%, #03a9f4 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 12px 15px;
-        margin: 8px 0;
-        max-width: 75%;
-        align-self: flex-end;
-        font-size: 15px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        animation: slideInRight 0.3s ease;
+    .stChatMessage[user="true"] {
+        background: linear-gradient(90deg, #0288d1 0%, #03a9f4 100%) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        padding: 12px 15px !important;
+        margin: 8px 0 !important;
+        max-width: 75% !important;
+        align-self: flex-end !important;
+        font-size: 15px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+        animation: slideInRight 0.3s ease !important;
     }
     /* Assistant message */
-    .chat-message-assistant {
-        background: #424242;
-        color: #e0e0e0;
-        border-radius: 12px;
-        padding: 12px 15px;
-        margin: 8px 0;
-        max-width: 75%;
-        align-self: flex-start;
-        font-size: 15px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        animation: slideInLeft 0.3s ease;
+    .stChatMessage[assistant="true"] {
+        background: #424242 !important;
+        color: #e0e0e0 !important;
+        border-radius: 12px !important;
+        padding: 12px 15px !important;
+        margin: 8px 0 !important;
+        max-width: 75% !important;
+        align-self: flex-start !important;
+        font-size: 15px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+        animation: slideInLeft 0.3s ease !important;
     }
     /* Sidebar */
     .sidebar .sidebar-content {
@@ -213,7 +212,7 @@ st.markdown("""
 # Initialize session state for chat history
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
-        {"role": "assistant", "content": "🤖 Hi! I'm your Price Tracker Bot. Type a product name (e.g., 'Nike shoes' or 'Pen') to get prices. 💰"}
+        {"role": "assistant", "content": "Hi! I'm your Price Tracker Bot. Type a product name (e.g., 'Nike shoes' or 'Pen') to get prices. 💰"}
     ]
 
 # Sidebar navigation using streamlit_option_menu
@@ -232,23 +231,11 @@ if selected == "Chatbot":
     st.markdown('<div class="title">📦 Price Tracker Chatbot</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Your sleek companion for real-time price tracking!</div>', unsafe_allow_html=True)
 
-    # Chat container
-    chat_container = st.container()
-    with chat_container:
-        chat_html = '<div class="chat-container">'
+    # Chat container using st.chat_message
+    with st.container():
         for message in st.session_state["messages"]:
-            if message["role"] == "user":
-                chat_html += f'<div class="chat-message-user">👤 {message["content"]}</div>'
-            else:
-                chat_html += f'<div class="chat-message-assistant">🤖 {message["content"]}</div>'
-        chat_html += '</div>'
-        chat_html += """
-        <script>
-            var chatContainer = document.querySelector('.chat-container');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        </script>
-        """
-        st.markdown(chat_html, unsafe_allow_html=True)
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
     # Chat input
     user_input = st.chat_input("Ask me anything...", key="chat_input")
@@ -276,10 +263,48 @@ if selected == "Chatbot":
         words = user_input_lower.split()
         is_json_requested = "json" in words
 
+        # Define product keywords (expanded to include more brands and models)
+        product_keywords = [
+            "iphone", "shoes", "laptop", "tv", "headphones", "watch", "camera", "pen", "toothbrush",
+            "asus", "tuf", "gaming", "f15", "nike", "adidas", "samsung", "sony", "dell", "hp", "lenovo",
+            "macbook", "ipad", "airpods", "playstation", "xbox", "nintendo", "keyboard", "mouse", "monitor"
+        ]
+        # Check if the input contains any product keywords
+        is_product_query = any(keyword in user_input_normalized for keyword in product_keywords)
+
+        # Define price-related phrases to identify product price queries
+        price_indicators = [
+            "price of", "cost of", "how much is", "how much does", "what is the price", "what does it cost"
+        ]
+        # Check if the input contains any price-related phrases
+        is_price_query = any(indicator in user_input_lower for indicator in price_indicators)
+
+        # Define general knowledge question indicators
+        general_knowledge_indicators = [
+            "how many", "what is", "who is", "where is", "when did", "why is",
+            "how does", "what are", "who was", "where are", "when is", "why are"
+        ]
+        # Check if the input matches general knowledge indicators
+        is_general_knowledge = any(indicator in user_input_lower for indicator in general_knowledge_indicators)
+
+        # Define bot identity query indicators
+        bot_identity_indicators = [
+            "your name", "who are you", "what is your name", "what's your name"
+        ]
+        # Check if the input is asking about the bot's identity
+        is_bot_identity_query = any(indicator in user_input_lower for indicator in bot_identity_indicators)
+
+        # Classify as a product query if it contains a product keyword OR a price indicator
+        # Prioritize product query detection over general knowledge if there's a price indicator
+        is_product_query = is_product_query or (is_price_query and any(word not in general_knowledge_indicators for word in words))
+
+        # Classify as general knowledge only if it's not a product query or bot identity query
+        is_general_knowledge = is_general_knowledge and not is_product_query and not is_bot_identity_query
+
         if user_input_lower == "about":
             response = """
             <div class="about-box">
-            🤖 Hey there! I’m your <b>Price Tracker Chatbot</b>, designed to help you find the best deals. Just give me a product name (e.g., 'Nike shoes' or 'Pen'), and I’ll fetch real-time prices. I can also share shopping insights or track price drops with email alerts. Built with Streamlit, Python, and Gemini API—let’s save some money together! 💰
+            Hey there! I’m your <b>Price Tracker Chatbot</b>, designed to help you find the best deals. Just give me a product name (e.g., 'Nike shoes' or 'Pen'), and I’ll fetch real-time prices. I can also share shopping insights or track price drops with email alerts. Built with Streamlit, Python, and Gemini API—let’s save some money together! 💰
             </div>
             """
         elif user_input_lower == "track this":
@@ -287,37 +312,51 @@ if selected == "Chatbot":
                 response = "⚠️ Please enter your email in the sidebar for price drop alerts!"
             else:
                 response = f"🔔 Sweet! I’ll notify you at <b>{recipient_email}</b> when prices drop. Anything else I can help with?"
+        elif is_bot_identity_query:
+            # Handle queries about the bot's identity
+            response = "I’m the **Price Tracker Bot**! Nice to meet you! I’m here to help you find the best deals on products from e-commerce websites. Just type a product name (e.g., 'Nike shoes' or 'Pen'), and I’ll fetch the latest prices for you. 💰 What would you like to search for?"
+        elif is_general_knowledge:
+            # Decline general knowledge questions and prompt for product queries
+            response = "⚠️ Sorry, I'm a Price Tracker Bot designed to help with product price searches on e-commerce websites. Please ask about a product (e.g., 'Nike shoes' or 'Pen') to get prices! 💰"
         else:
-            product_keywords = ["iphone", "shoes", "laptop", "tv", "headphones", "watch", "camera", "pen", "toothbrush"]
             insight_phrases = ["insights", "went outside", "shop", "saw", "checked out"]
             detected_product = next((keyword for keyword in product_keywords if keyword in user_input_normalized), None)
 
             if detected_product and any(phrase in user_input_lower for phrase in insight_phrases):
                 if detected_product == "iphone":
                     response = """
-                    🤖 Nice, you checked out an iPhone! Without a specific model, here’s some info for India as of March 27, 2025: iPhone 13 is a steal at ~₹50,999 on Flipkart, while the iPhone 15 starts at ₹79,900. Newer models like iPhone 16 have A18 chips and 48MP cameras. <b>Tip:</b> Compare online before buying in-store. Which model did you see?
+                    Nice, you checked out an iPhone! Without a specific model, here’s some info for India as of March 27, 2025: iPhone 13 is a steal at ~₹50,999 on Flipkart, while the iPhone 15 starts at ₹79,900. Newer models like iPhone 16 have A18 chips and 48MP cameras. <b>Tip:</b> Compare online before buying in-store. Which model did you see?
                     """
                 elif detected_product == "shoes":
                     response = """
-                    🤖 Awesome, you saw some shoes! In India, Nike sneakers range from ₹5,000-₹12,000 online, while premium ones hit ₹15,000+. Trends include cushioning and anti-slip soles. <b>Tip:</b> Check e-commerce for discounts. What style did you spot?
+                    Awesome, you saw some shoes! In India, Nike sneakers range from ₹5,000-₹12,000 online, while premium ones hit ₹15,000+. Trends include cushioning and anti-slip soles. <b>Tip:</b> Check e-commerce for discounts. What style did you spot?
                     """
                 elif detected_product == "laptop":
                     response = """
-                    🤖 Cool, you checked out a laptop! Entry-level ones are ₹35,000-₹50,000 on Amazon.in, while high-end models like MacBook Pro exceed ₹1,50,000. Look for i5/i7, SSDs, and 16GB RAM. <b>Tip:</b> Online deals often beat stores. Which one caught your eye?
+                    Cool, you checked out a laptop! Entry-level ones are ₹35,000-₹50,000 on Amazon.in, while high-end models like MacBook Pro exceed ₹1,50,000. Look for i5/i7, SSDs, and 16GB RAM. <b>Tip:</b> Online deals often beat stores. Which one caught your eye?
                     """
                 elif detected_product == "pen":
                     response = """
-                    🤖 Nice, you saw a pen! Reynolds ballpoints are ₹10-₹50 online, while Parker fountain pens range ₹1,000-₹10,000+. Look for smooth ink and grips. <b>Tip:</b> Bulk deals online save cash. What type was it?
+                    Nice, you saw a pen! Reynolds ballpoints are ₹10-₹50 online, while Parker fountain pens range ₹1,000-₹10,000+. Look for smooth ink and grips. <b>Tip:</b> Bulk deals online save cash. What type was it?
                     """
                 elif detected_product == "toothbrush":
                     response = """
-                    🤖 Great, you checked out a toothbrush! Colgate manuals are ₹20-₹100, while Oral-B electric ones range ₹500-₹5,000+. Soft bristles and timers are hot. <b>Tip:</b> Combo packs online are cheaper. Which one did you see?
+                    Great, you checked out a toothbrush! Colgate manuals are ₹20-₹100, while Oral-B electric ones range ₹500-₹5,000+. Soft bristles and timers are hot. <b>Tip:</b> Combo packs online are cheaper. Which one did you see?
                     """
             else:
                 if len(user_input_lower) < 3 or not any(char.isalpha() for char in user_input_lower):
                     response = f"🚫 No results for '{user_input}'. Try a valid product name!"
                 else:
+                    # Extract the product name for the search
                     product_query = user_input.strip()
+                    # If it's a price query, try to extract the product name more precisely
+                    if is_price_query:
+                        for indicator in price_indicators:
+                            if indicator in user_input_lower:
+                                # Extract the part after the price indicator as the product name
+                                product_query = user_input_lower.split(indicator, 1)[-1].strip()
+                                break
+
                     typing_placeholder = st.empty()
                     typing_placeholder.markdown("""
                         <div class="typing-indicator">
@@ -362,7 +401,7 @@ elif selected == "About":
 
     st.markdown("""
         <div class="about-box">
-        🤖 <b>Price Tracker Chatbot</b> is your go-to tool for real-time price tracking! Built with Streamlit, Python, and the Gemini API, it fetches prices from online sources with an average response time of <b>2-3 seconds</b>.  
+        <b>Price Tracker Chatbot</b> is your go-to tool for real-time price tracking! Built with Streamlit, Python, and the Gemini API, it fetches prices from online sources with an average response time of <b>2-3 seconds</b>.  
         <br><br>
         <b>How It Works:</b> Simply type a product name, and I search the web using advanced APIs, returning up to <b>10 listings</b> per query. I also support price drop alerts via email and offer shopping insights based on predefined keywords.  
         <br><br>
@@ -382,6 +421,394 @@ elif selected == "About":
             st.success("Thank you! Your feedback has been received.")
         else:
             st.warning("Please provide feedback before submitting.")
+
+
+
+
+
+# import streamlit as st
+# import os
+# import json
+# from dotenv import load_dotenv
+# from streamlit_option_menu import option_menu
+# from utils.web_search import search_product_prices
+# from utils.database_manager import DatabaseManager
+# from utils.email_sender import EmailSender
+
+# # Set page config FIRST
+# st.set_page_config(page_title="Price Tracker Bot", page_icon="💰", layout="wide", initial_sidebar_state="expanded")
+
+# # Load environment variables
+# load_dotenv()
+# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+# SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+# RECIPIENT_EMAIL = os.getenv("RECIPIENT_EMAIL")
+
+# # Initialize database and email sender
+# db_manager = DatabaseManager("product_prices.db")
+# email_sender = EmailSender(SENDER_EMAIL, SENDER_PASSWORD)
+
+# # Custom CSS for a clean, modern, and attractive UI
+# st.markdown("""
+#     <style>
+#     /* Import Poppins font */
+#     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+#     /* Main app background */
+#     .main {
+#         background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+#         padding: 20px;
+#         min-height: 100vh;
+#     }
+#     /* Chat container */
+#     .chat-container {
+#         background: #212121;
+#         border-radius: 15px;
+#         padding: 20px;
+#         max-height: 600px;
+#         overflow-y: auto;
+#         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+#         display: flex;
+#         flex-direction: column;
+#     }
+#     /* User message */
+#     .chat-message-user {
+#         background: linear-gradient(90deg, #0288d1 0%, #03a9f4 100%);
+#         color: white;
+#         border-radius: 12px;
+#         padding: 12px 15px;
+#         margin: 8px 0;
+#         max-width: 75%;
+#         align-self: flex-end;
+#         font-size: 15px;
+#         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+#         animation: slideInRight 0.3s ease;
+#     }
+#     /* Assistant message */
+#     .chat-message-assistant {
+#         background: #424242;
+#         color: #e0e0e0;
+#         border-radius: 12px;
+#         padding: 12px 15px;
+#         margin: 8px 0;
+#         max-width: 75%;
+#         align-self: flex-start;
+#         font-size: 15px;
+#         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+#         animation: slideInLeft 0.3s ease;
+#     }
+#     /* Sidebar */
+#     .sidebar .sidebar-content {
+#         background: #212121;
+#         padding: 20px;
+#         border-radius: 10px;
+#         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+#     }
+#     /* Text input */
+#     .stTextInput>div>input {
+#         background: #333;
+#         color: #fff;
+#         border: 2px solid #0288d1;
+#         border-radius: 10px;
+#         padding: 10px;
+#         font-size: 15px;
+#         transition: border-color 0.3s ease;
+#     }
+#     .stTextInput>div>input:focus {
+#         border-color: #03a9f4;
+#         outline: none;
+#     }
+#     /* Text area */
+#     .stTextArea textarea {
+#         background: #333 !important;
+#         color: #fff !important;
+#         border: 2px solid #0288d1 !important;
+#         border-radius: 10px !important;
+#         padding: 10px !important;
+#         font-size: 15px !important;
+#         transition: border-color 0.3s ease !important;
+#     }
+#     .stTextArea textarea:focus {
+#         border-color: #03a9f4 !important;
+#         outline: none !important;
+#     }
+#     /* Buttons */
+#     .stButton>button {
+#         background: #0288d1;
+#         color: white;
+#         border-radius: 10px;
+#         padding: 10px 20px;
+#         border: none;
+#         font-size: 14px;
+#         transition: background 0.3s ease;
+#     }
+#     .stButton>button:hover {
+#         background: #03a9f4;
+#     }
+#     /* Title and subtitle */
+#     .title {
+#         color: #ffffff;
+#         font-size: 32px;
+#         font-weight: 700;
+#         text-align: center;
+#         margin-bottom: 5px;
+#         font-family: 'Poppins', sans-serif;
+#         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+#     }
+#     .subtitle {
+#         color: #b0bec5;
+#         font-size: 16px;
+#         text-align: center;
+#         margin-bottom: 25px;
+#         font-family: 'Poppins', sans-serif;
+#     }
+#     /* About box */
+#     .about-box {
+#         background: #2d2d2d;
+#         border-left: 4px solid #0288d1;
+#         padding: 15px;
+#         border-radius: 8px;
+#         color: #e0e0e0;
+#         font-size: 14px;
+#         line-height: 1.6;
+#         font-family: 'Poppins', sans-serif;
+#     }
+#     /* Sidebar text */
+#     .sidebar h2 {
+#         color: #0288d1;
+#         font-family: 'Poppins', sans-serif;
+#         font-size: 24px;
+#     }
+#     .sidebar h4 {
+#         color: #03a9f4;
+#         font-family: 'Poppins', sans-serif;
+#         font-size: 18px;
+#     }
+#     .sidebar p, .sidebar div {
+#         color: #b0bec5;
+#         font-size: 14px;
+#         font-family: 'Poppins', sans-serif;
+#     }
+#     /* Animations */
+#     @keyframes slideInRight {
+#         from { transform: translateX(50px); opacity: 0; }
+#         to { transform: translateX(0); opacity: 1; }
+#     }
+#     @keyframes slideInLeft {
+#         from { transform: translateX(-50px); opacity: 0; }
+#         to { transform: translateX(0); opacity: 1; }
+#     }
+#     /* Typing indicator */
+#     .typing-indicator {
+#         display: flex;
+#         align-items: center;
+#         color: #b0bec5;
+#         font-size: 14px;
+#         margin-top: 10px;
+#     }
+#     .typing-indicator span {
+#         width: 8px;
+#         height: 8px;
+#         background: #0288d1;
+#         border-radius: 50%;
+#         margin: 0 3px;
+#         animation: typing 1s infinite;
+#     }
+#     .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+#     .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+#     @keyframes typing {
+#         0%, 100% { opacity: 0.3; transform: translateY(0); }
+#         50% { opacity: 1; transform: translateY(-4px); }
+#     }
+#     /* Streamlit option menu styling */
+#     .nav-link {
+#         color: #b0bec5 !important;
+#         font-family: 'Poppins', sans-serif !important;
+#         font-size: 16px !important;
+#     }
+#     .nav-link:hover {
+#         color: #ffffff !important;
+#         background: #0288d1 !important;
+#     }
+#     .nav-link-selected {
+#         background: #03a9f4 !important;
+#         color: #ffffff !important;
+#     }
+#     </style>
+# """, unsafe_allow_html=True)
+
+# # Initialize session state for chat history
+# if "messages" not in st.session_state:
+#     st.session_state["messages"] = [
+#         {"role": "assistant", "content": "🤖 Hi! I'm your Price Tracker Bot. Type a product name (e.g., 'Nike shoes' or 'Pen') to get prices. 💰"}
+#     ]
+
+# # Sidebar navigation using streamlit_option_menu
+# with st.sidebar:
+#     selected = option_menu(
+#         'Price Tracker',
+#         ['Chatbot', 'About'],
+#         menu_icon='cart-check-fill',
+#         icons=['chat-dots-fill', 'info-circle-fill'],
+#         default_index=0
+#     )
+
+# # Main content based on sidebar selection
+# if selected == "Chatbot":
+#     # Main chat interface
+#     st.markdown('<div class="title">📦 Price Tracker Chatbot</div>', unsafe_allow_html=True)
+#     st.markdown('<div class="subtitle">Your sleek companion for real-time price tracking!</div>', unsafe_allow_html=True)
+
+#     # Chat container
+#     chat_container = st.container()
+#     with chat_container:
+#         chat_html = '<div class="chat-container">'
+#         for message in st.session_state["messages"]:
+#             if message["role"] == "user":
+#                 chat_html += f'<div class="chat-message-user">👤 {message["content"]}</div>'
+#             else:
+#                 chat_html += f'<div class="chat-message-assistant">🤖 {message["content"]}</div>'
+#         chat_html += '</div>'
+#         chat_html += """
+#         <script>
+#             var chatContainer = document.querySelector('.chat-container');
+#             chatContainer.scrollTop = chatContainer.scrollHeight;
+#         </script>
+#         """
+#         st.markdown(chat_html, unsafe_allow_html=True)
+
+#     # Chat input
+#     user_input = st.chat_input("Ask me anything...", key="chat_input")
+
+#     # Sidebar sections for Chatbot mode
+#     with st.sidebar:
+#         st.markdown('<h4>🔔 Price Alerts</h4>', unsafe_allow_html=True)
+#         recipient_email = st.text_input("📩 Your Email", value=RECIPIENT_EMAIL or "", key="email_input", placeholder="Enter your email")
+#         st.markdown('<p>ℹ️ Get notified when prices drop!</p>', unsafe_allow_html=True)
+        
+#         st.markdown('<h4>🛒 Tips</h4>', unsafe_allow_html=True)
+#         st.markdown("""
+#             <div>
+#             ✅ Be specific (e.g., brand, model)   
+#             </div>
+#         """, unsafe_allow_html=True)
+
+#     # Process user input
+#     if user_input:
+#         st.session_state["messages"].append({"role": "user", "content": user_input})
+        
+#         response = ""
+#         user_input_lower = user_input.lower().strip()
+#         user_input_normalized = user_input_lower.replace(" ", "")
+#         words = user_input_lower.split()
+#         is_json_requested = "json" in words
+
+#         if user_input_lower == "about":
+#             response = """
+#             <div class="about-box">
+#             🤖 Hey there! I’m your <b>Price Tracker Chatbot</b>, designed to help you find the best deals. Just give me a product name (e.g., 'Nike shoes' or 'Pen'), and I’ll fetch real-time prices. I can also share shopping insights or track price drops with email alerts. Built with Streamlit, Python, and Gemini API—let’s save some money together! 💰
+#             </div>
+#             """
+#         elif user_input_lower == "track this":
+#             if not recipient_email:
+#                 response = "⚠️ Please enter your email in the sidebar for price drop alerts!"
+#             else:
+#                 response = f"🔔 Sweet! I’ll notify you at <b>{recipient_email}</b> when prices drop. Anything else I can help with?"
+#         else:
+#             product_keywords = ["iphone", "shoes", "laptop", "tv", "headphones", "watch", "camera", "pen", "toothbrush"]
+#             insight_phrases = ["insights", "went outside", "shop", "saw", "checked out"]
+#             detected_product = next((keyword for keyword in product_keywords if keyword in user_input_normalized), None)
+
+#             if detected_product and any(phrase in user_input_lower for phrase in insight_phrases):
+#                 if detected_product == "iphone":
+#                     response = """
+#                     🤖 Nice, you checked out an iPhone! Without a specific model, here’s some info for India as of March 27, 2025: iPhone 13 is a steal at ~₹50,999 on Flipkart, while the iPhone 15 starts at ₹79,900. Newer models like iPhone 16 have A18 chips and 48MP cameras. <b>Tip:</b> Compare online before buying in-store. Which model did you see?
+#                     """
+#                 elif detected_product == "shoes":
+#                     response = """
+#                     🤖 Awesome, you saw some shoes! In India, Nike sneakers range from ₹5,000-₹12,000 online, while premium ones hit ₹15,000+. Trends include cushioning and anti-slip soles. <b>Tip:</b> Check e-commerce for discounts. What style did you spot?
+#                     """
+#                 elif detected_product == "laptop":
+#                     response = """
+#                     🤖 Cool, you checked out a laptop! Entry-level ones are ₹35,000-₹50,000 on Amazon.in, while high-end models like MacBook Pro exceed ₹1,50,000. Look for i5/i7, SSDs, and 16GB RAM. <b>Tip:</b> Online deals often beat stores. Which one caught your eye?
+#                     """
+#                 elif detected_product == "pen":
+#                     response = """
+#                     🤖 Nice, you saw a pen! Reynolds ballpoints are ₹10-₹50 online, while Parker fountain pens range ₹1,000-₹10,000+. Look for smooth ink and grips. <b>Tip:</b> Bulk deals online save cash. What type was it?
+#                     """
+#                 elif detected_product == "toothbrush":
+#                     response = """
+#                     🤖 Great, you checked out a toothbrush! Colgate manuals are ₹20-₹100, while Oral-B electric ones range ₹500-₹5,000+. Soft bristles and timers are hot. <b>Tip:</b> Combo packs online are cheaper. Which one did you see?
+#                     """
+#             else:
+#                 if len(user_input_lower) < 3 or not any(char.isalpha() for char in user_input_lower):
+#                     response = f"🚫 No results for '{user_input}'. Try a valid product name!"
+#                 else:
+#                     product_query = user_input.strip()
+#                     typing_placeholder = st.empty()
+#                     typing_placeholder.markdown("""
+#                         <div class="typing-indicator">
+#                             Typing <span></span><span></span><span></span>
+#                         </div>
+#                     """, unsafe_allow_html=True)
+#                     try:
+#                         results = search_product_prices(product_query, GEMINI_API_KEY)
+#                         typing_placeholder.empty()
+#                         if not isinstance(results, list) or len(results) == 0:
+#                             response = f"🚫 No results for '{product_query}'. Try another name or check spelling."
+#                         else:
+#                             if is_json_requested:
+#                                 json_data = {
+#                                     "query": product_query,
+#                                     "results_count": len(results),
+#                                     "listings": [
+#                                         {
+#                                             "product": result.get("Product", "Product"),
+#                                             "price": result.get("Price", "N/A"),
+#                                             "platform": result.get("Platform", "Source")
+#                                         } for result in results
+#                                     ]
+#                                 }
+#                                 response = f"✅ Found {len(results)} listings for '{product_query}'!\n\nJSON:\n```json\n{json.dumps(json_data, indent=2)}\n```"
+#                             else:
+#                                 response = f"✅ Found {len(results)} listings for '{product_query}'!\n\n"
+#                                 for i, result in enumerate(results, 1):
+#                                     response += f"{i}. **{result.get('Product', 'Product')}**: {result.get('Price', 'N/A')} - [{result.get('Platform', 'Source')}]\n"
+#                                 response += "\nSay 'Track this' to monitor it!"
+#                     except Exception as e:
+#                         typing_placeholder.empty()
+#                         response = f"⚠️ Oops! Error: {str(e)}. Try again?"
+
+#         st.session_state["messages"].append({"role": "assistant", "content": response})
+#         st.rerun()
+
+# elif selected == "About":
+#     # Dedicated About section
+#     st.markdown('<div class="title">ℹ️ About Price Tracker Chatbot</div>', unsafe_allow_html=True)
+#     st.markdown('<div class="subtitle">Learn more about your price tracking companion!</div>', unsafe_allow_html=True)
+
+#     st.markdown("""
+#         <div class="about-box">
+#         🤖 <b>Price Tracker Chatbot</b> is your go-to tool for real-time price tracking! Built with Streamlit, Python, and the Gemini API, it fetches prices from online sources with an average response time of <b>2-3 seconds</b>.  
+#         <br><br>
+#         <b>How It Works:</b> Simply type a product name, and I search the web using advanced APIs, returning up to <b>10 listings</b> per query. I also support price drop alerts via email and offer shopping insights based on predefined keywords.  
+#         <br><br>
+#         <b>Efficiency:</b> With a success rate of <b>95%</b> for valid queries, I handle thousands of requests daily with minimal downtime. My lightweight database ensures fast price tracking, while the sleek UI keeps you engaged.  
+#         <br><br>
+#         Created by Akash Chaudhary—your feedback helps me improve!
+#         </div>
+#     """, unsafe_allow_html=True)
+
+#     # Email input for feedback
+#     feedback_email = st.text_input("📧 Your Email (Optional)", placeholder="Enter your email to send feedback", key="feedback_email")
+#     feedback_message = st.text_area("💬 Your Feedback", placeholder="Share your thoughts or suggestions...", height=150)
+#     if st.button("Send Feedback"):
+#         if feedback_email and feedback_message:
+#             st.success(f"Thank you! Your feedback has been received from {feedback_email}.")
+#         elif feedback_message:
+#             st.success("Thank you! Your feedback has been received.")
+#         else:
+#             st.warning("Please provide feedback before submitting.")
 
 
 
