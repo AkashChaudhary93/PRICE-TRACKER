@@ -246,10 +246,12 @@ if selected == "Chatbot":
         recipient_email = st.text_input("📩 Your Email", value=RECIPIENT_EMAIL or "", key="email_input", placeholder="Enter your email")
         st.markdown('<p>ℹ️ Get notified when prices drop!</p>', unsafe_allow_html=True)
         
-        st.markdown('<h4>🛒 Tips</h4>', unsafe_allow_html=True)
+        st.markdown('<h4>About</h4>', unsafe_allow_html=True)
         st.markdown("""
             <div>
-            ✅ Be specific (e.g., brand, model)   
+            12310625 Akash Chaudhary. 
+            12310776 Nikhil Rai. 
+            12305915 Sachin Tiwari.  
             </div>
         """, unsafe_allow_html=True)
 
@@ -407,7 +409,7 @@ elif selected == "About":
         <br><br>
         <b>Efficiency:</b> With a success rate of <b>95%</b> for valid queries, I handle thousands of requests daily with minimal downtime. My lightweight database ensures fast price tracking, while the sleek UI keeps you engaged.  
         <br><br>
-        Created by Akash Chaudhary—your feedback helps me improve!
+        Created by Akash Chaudhary 12310625, Nikhil Rai 12310776, Sachin Tiwari 1235915  feedback helps me improve!
         </div>
     """, unsafe_allow_html=True)
 
@@ -686,10 +688,12 @@ elif selected == "About":
 #         recipient_email = st.text_input("📩 Your Email", value=RECIPIENT_EMAIL or "", key="email_input", placeholder="Enter your email")
 #         st.markdown('<p>ℹ️ Get notified when prices drop!</p>', unsafe_allow_html=True)
         
-#         st.markdown('<h4>🛒 Tips</h4>', unsafe_allow_html=True)
+#         st.markdown('<h4>About:</h4>', unsafe_allow_html=True)
 #         st.markdown("""
 #             <div>
-#             ✅ Be specific (e.g., brand, model)   
+#             12310625 Akash Chaudhary. 
+#             12310776 Nikhil Rai. 
+#             123059 Sachin Tiwari.   
 #             </div>
 #         """, unsafe_allow_html=True)
 
