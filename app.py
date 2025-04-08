@@ -269,7 +269,7 @@ if selected == "Chatbot":
         product_keywords = [
             "iphone", "shoes", "laptop", "tv", "headphones", "watch", "camera", "pen", "toothbrush",
             "asus", "tuf", "gaming", "f15", "nike", "adidas", "samsung", "sony", "dell", "hp", "lenovo",
-            "macbook", "ipad", "airpods", "playstation", "xbox", "nintendo", "keyboard", "mouse", "monitor"
+            "macbook", "ipad", "airpods", "playstation", "xbox", "nintendo", "keyboard", "mouse", "monitor","Medicine"
         ]
         # Check if the input contains any product keywords
         is_product_query = any(keyword in user_input_normalized for keyword in product_keywords)
